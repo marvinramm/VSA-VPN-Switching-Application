@@ -44,6 +44,12 @@ class MainActivity : AppCompatActivity() {
             if (hasFineLocation() && needsBackgroundLocation()) askBackgroundLocation()
         }
 
+    private val wireguardPermLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) toast("Ohne diese Berechtigung kann VSA WireGuard nicht steuern.")
+            refresh()
+        }
+
     private val backgroundPermLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             refresh()
@@ -80,6 +86,8 @@ class MainActivity : AppCompatActivity() {
                 updateDelayLabel()
             }
         }
+
+        setupVpnCard()
 
         b.buttonConnect.setOnClickListener { sendManual(true) }
         b.buttonDisconnect.setOnClickListener { sendManual(false) }
@@ -226,9 +234,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun missingSetupSteps(): List<SetupStep> {
         val steps = mutableListOf<SetupStep>()
-        if (!Tailscale.isInstalled(this)) {
-            steps += SetupStep("• Tailscale ist nicht installiert.") { openTailscaleStore() }
-        }
+        vpnSetupStep()?.let { steps += it }
         if (!hasFineLocation()) {
             steps += SetupStep("• Standortberechtigung fehlt (nötig, um den WLAN-Namen zu lesen).") {
                 requestForegroundPermissions()
@@ -325,23 +331,86 @@ class MainActivity : AppCompatActivity() {
             .onFailure { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
     }
 
-    // ---------- Tailscale ----------
+    // ---------- VPN-Dienst ----------
 
-    private fun sendManual(on: Boolean) {
-        if (!Tailscale.isInstalled(this)) {
-            openTailscaleStore()
-            return
+    private fun setupVpnCard() {
+        b.editWgTunnel.setText(prefs.wireguardTunnel)
+        b.editCustomPackage.setText(prefs.customPackage)
+        b.editCustomClass.setText(prefs.customReceiverClass)
+        b.editCustomConnect.setText(prefs.customConnectAction)
+        b.editCustomDisconnect.setText(prefs.customDisconnectAction)
+        b.editCustomExtras.setText(prefs.customExtras)
+
+        val radioFor = mapOf(
+            VpnProvider.TAILSCALE to b.radioTailscale.id,
+            VpnProvider.WIREGUARD to b.radioWireguard.id,
+            VpnProvider.CUSTOM to b.radioCustom.id,
+        )
+        b.radioProvider.check(radioFor.getValue(prefs.provider))
+        renderProviderFields()
+        b.radioProvider.setOnCheckedChangeListener { _, checkedId ->
+            val provider = radioFor.entries.first { it.value == checkedId }.key
+            if (provider != prefs.provider) {
+                prefs.provider = provider
+                prefs.lastVpnOn = null
+            }
+            renderProviderFields()
+            refresh()
         }
-        Tailscale.setConnected(this, on)
-        toast(if (on) "Verbinden-Befehl an Tailscale gesendet." else "Trennen-Befehl an Tailscale gesendet.")
+
+        b.buttonSaveVpn.setOnClickListener {
+            prefs.wireguardTunnel = b.editWgTunnel.text?.toString()?.trim().orEmpty()
+            prefs.customPackage = b.editCustomPackage.text?.toString()?.trim().orEmpty()
+            prefs.customReceiverClass = b.editCustomClass.text?.toString()?.trim().orEmpty()
+            prefs.customConnectAction = b.editCustomConnect.text?.toString()?.trim().orEmpty()
+            prefs.customDisconnectAction = b.editCustomDisconnect.text?.toString()?.trim().orEmpty()
+            prefs.customExtras = b.editCustomExtras.text?.toString().orEmpty()
+            toast("Gespeichert.")
+            refresh()
+        }
     }
 
-    private fun openTailscaleStore() {
-        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${Tailscale.PACKAGE}"))
-        val web = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("https://play.google.com/store/apps/details?id=${Tailscale.PACKAGE}"),
-        )
+    private fun renderProviderFields() {
+        val provider = prefs.provider
+        b.groupWireguard.visibility = if (provider == VpnProvider.WIREGUARD) View.VISIBLE else View.GONE
+        b.groupCustom.visibility = if (provider == VpnProvider.CUSTOM) View.VISIBLE else View.GONE
+        b.buttonSaveVpn.visibility = if (provider == VpnProvider.TAILSCALE) View.GONE else View.VISIBLE
+    }
+
+    private fun vpnSetupStep(): SetupStep? {
+        val problem = VpnController.configProblem(this, prefs) ?: return null
+        val provider = prefs.provider
+        val pkg = provider.packageName
+        return when {
+            pkg != null && !VpnController.isInstalled(this, pkg) ->
+                SetupStep("• $problem") { openStore(pkg) }
+
+            provider == VpnProvider.WIREGUARD && prefs.wireguardTunnel.isNotBlank() &&
+                !VpnController.hasWireGuardPermission(this) ->
+                SetupStep("• $problem") { wireguardPermLauncher.launch(VpnController.WIREGUARD_PERMISSION) }
+
+            else -> SetupStep("• $problem") {
+                toast("Bitte die Angaben im Bereich „VPN-Dienst“ ergänzen und speichern.")
+            }
+        }
+    }
+
+    private fun sendManual(on: Boolean) {
+        when (val result = VpnController.setConnected(this, prefs, on)) {
+            is SendResult.Sent -> {
+                val name = prefs.provider.label
+                toast(if (on) "Verbinden-Befehl an $name gesendet." else "Trennen-Befehl an $name gesendet.")
+            }
+            is SendResult.Failed -> {
+                toast(result.reason)
+                vpnSetupStep()?.fix?.invoke()
+            }
+        }
+    }
+
+    private fun openStore(pkg: String) {
+        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))
+        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
         runCatching { startActivity(market) }.onFailure { runCatching { startActivity(web) } }
     }
 

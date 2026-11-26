@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- WLAN-Name (SSID) lesen: Android verlangt dafür Standortzugriff -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -15,9 +16,18 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- Damit wir die Tailscale-App sehen und ihr Broadcasts schicken dürfen (Android 11+) -->
+    <!-- WireGuard-Tunnel steuern (muss zur Laufzeit erlaubt werden) -->
+    <uses-permission android:name="com.wireguard.android.permission.CONTROL_TUNNELS" />
+
+    <!-- Damit VSA beliebige VPN-Apps sieht und ihnen Broadcasts schicken darf (Android 11+).
+         Wird nur für die Option „Andere App“ benötigt; VSA wird nicht über Google Play verteilt. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <queries>
         <package android:name="com.tailscale.ipn" />
+        <package android:name="com.wireguard.android" />
     </queries>
 
     <application
@@ -42,7 +52,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Watches the Wi-Fi connection to switch the Tailscale VPN on and off" />
+                android:value="Watches the Wi-Fi connection to switch a VPN app on and off" />
         </service>
 
         <receiver

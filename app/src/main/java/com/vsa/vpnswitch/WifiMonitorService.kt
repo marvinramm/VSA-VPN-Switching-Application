@@ -21,11 +21,11 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 
 /**
- * Vordergrund-Dienst: beobachtet das WLAN und schaltet Tailscale
+ * Vordergrund-Dienst: beobachtet das WLAN und schaltet die gewählte VPN-App (Tailscale, WireGuard, …)
  *  - AUS, sobald ein Heim-WLAN verbunden ist,
  *  - AN, sobald kein Heim-WLAN mehr verbunden ist (nach einer kurzen Verzögerung gegen Funklöcher).
  *
- * Es wird nur bei einem Wechsel geschaltet. Schaltest du Tailscale zwischendurch von Hand,
+ * Es wird nur bei einem Wechsel geschaltet. Schaltest du das VPN zwischendurch von Hand,
  * bleibt das so, bis du das nächste Mal nach Hause kommst bzw. gehst.
  */
 class WifiMonitorService : Service() {
@@ -38,6 +38,7 @@ class WifiMonitorService : Service() {
     private var firstDecision = true
     private var pendingConnect = false
     private var lastNotificationText: String? = null
+    private var lastError: String? = null
 
     private val connectRunnable = Runnable {
         pendingConnect = false
@@ -46,7 +47,12 @@ class WifiMonitorService : Service() {
     }
 
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == Prefs.KEY_SSIDS || key == Prefs.KEY_DELAY) {
+        if (key in VPN_CONFIG_KEYS) {
+            // Anderer Dienst/andere Einstellungen: beim nächsten Durchlauf neu schalten.
+            firstDecision = true
+            cancelPendingConnect()
+            evaluate()
+        } else if (key == Prefs.KEY_SSIDS || key == Prefs.KEY_DELAY) {
             if (key == Prefs.KEY_DELAY && pendingConnect) {
                 handler.removeCallbacks(connectRunnable)
                 pendingConnect = false
@@ -97,13 +103,14 @@ class WifiMonitorService : Service() {
         val known = watcher.knownSsids
         val homeSsid = known.firstOrNull { it in home }
 
+        val vpn = prefs.provider.label
         val text: String = when {
             home.isEmpty() -> "Kein Heim-WLAN festgelegt – öffne die App."
 
             homeSsid != null -> {
                 cancelPendingConnect()
                 applyVpn(false)
-                "Zuhause („$homeSsid“) – Tailscale aus"
+                "Zuhause („$homeSsid“) – $vpn aus"
             }
 
             watcher.hasWifi && known.isEmpty() ->
@@ -124,15 +131,16 @@ class WifiMonitorService : Service() {
                     }
                 }
                 if (pendingConnect) {
-                    "$where – Tailscale startet in ${prefs.leaveDelaySec} s…"
+                    "$where – $vpn startet in ${prefs.leaveDelaySec} s…"
                 } else {
-                    "$where – Tailscale an"
+                    "$where – $vpn an"
                 }
             }
         }
 
-        MonitorState.status.value = MonitorStatus(running = true, text = text)
-        updateNotification(text)
+        val fullText = lastError?.let { "$text\n⚠ $it" } ?: text
+        MonitorState.status.value = MonitorStatus(running = true, text = fullText)
+        updateNotification(fullText)
     }
 
     private fun cancelPendingConnect() {
@@ -147,9 +155,18 @@ class WifiMonitorService : Service() {
         val force = firstDecision
         firstDecision = false
         if (!force && prefs.lastVpnOn == on) return
-        Log.i(TAG, "Tailscale -> ${if (on) "connect" else "disconnect"}")
-        Tailscale.setConnected(this, on)
-        prefs.lastVpnOn = on
+        Log.i(TAG, "${prefs.provider.label} -> ${if (on) "connect" else "disconnect"}")
+        when (val result = VpnController.setConnected(this, prefs, on)) {
+            is SendResult.Sent -> {
+                lastError = null
+                prefs.lastVpnOn = on
+            }
+            is SendResult.Failed -> {
+                // lastVpnOn bleibt unverändert, damit beim nächsten Netzwechsel erneut versucht wird.
+                Log.w(TAG, "Schalten fehlgeschlagen: ${result.reason}")
+                lastError = result.reason
+            }
+        }
     }
 
     // ---------- Benachrichtigung ----------
@@ -206,6 +223,10 @@ class WifiMonitorService : Service() {
         private const val TAG = "VSA"
         private const val CHANNEL_ID = "monitor"
         private const val NOTIFICATION_ID = 1
+        private val VPN_CONFIG_KEYS = setOf(
+            Prefs.KEY_PROVIDER, Prefs.KEY_WG_TUNNEL, Prefs.KEY_CUSTOM_PACKAGE, Prefs.KEY_CUSTOM_CLASS,
+            Prefs.KEY_CUSTOM_CONNECT, Prefs.KEY_CUSTOM_DISCONNECT, Prefs.KEY_CUSTOM_EXTRAS,
+        )
 
         fun startIfEnabled(context: Context) {
             val prefs = Prefs(context)

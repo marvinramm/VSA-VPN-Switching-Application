@@ -9,4 +9,6 @@
 .externalNativeBuild/
 .cxx/
 *.keystore
-!debug.keystore
+*.jks
+!signing/vsa-shared.keystore
+.kotlin/
