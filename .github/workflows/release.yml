@@ -2,9 +2,11 @@ name: Release
 
 # Startet, sobald ein Tag wie v1.0.0 gepusht wird:
 #   git tag v1.0.0 && git push origin v1.0.0
+# oder manuell unter Actions → Release → „Run workflow“ (Tag wird dann aus versionName erzeugt).
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,6 +21,17 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+
+      - name: Version bestimmen
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            TAG="v$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)"
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          echo "Release $TAG"
 
       # Optional: eigener Release-Schlüssel über Repository-Secrets (siehe docs/RELEASE.md).
       - name: Signierschlüssel einrichten
@@ -42,7 +55,6 @@ jobs:
 
       - name: APK umbenennen und Prüfsumme erzeugen
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           cp app/build/outputs/apk/release/app-release.apk "VSA-${VERSION}.apk"
           sha256sum "VSA-${VERSION}.apk" > "VSA-${VERSION}.apk.sha256"
           # Abschnitt dieser Version aus dem CHANGELOG als Release-Text
@@ -55,7 +67,9 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          name: VSA ${{ github.ref_name }}
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: VSA ${{ env.TAG }}
           body_path: release-notes.md
           files: |
             VSA-*.apk

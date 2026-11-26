@@ -14,6 +14,7 @@ Releases baut GitHub Actions automatisch (`.github/workflows/release.yml`), soba
    git tag v1.1.0
    git push origin main v1.1.0
    ```
+   Alternativ ohne Tag: auf GitHub unter *Actions → Release → „Run workflow“* starten. Das Tag wird dann aus `versionName` erzeugt.
 4. Nach 2–3 Minuten liegt unter **Releases** die Datei `VSA-1.1.0.apk` samt SHA-256-Prüfsumme.
 
 ## Signierung
