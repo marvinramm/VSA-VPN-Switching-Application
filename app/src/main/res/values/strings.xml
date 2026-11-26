@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">VSA</string>
+    <string name="app_title">VSA – VPN Switching</string>
+    <string name="auto_enabled">Automatik aktiv</string>
+    <string name="setup_title">Einrichtung</string>
+    <string name="fix_next">Jetzt beheben</string>
+    <string name="home_wifis">Heim-WLANs</string>
+    <string name="no_home_wifi">Noch kein Heim-WLAN festgelegt.</string>
+    <string name="add_current">Aktuelles WLAN hinzufügen</string>
+    <string name="ssid_manual">WLAN-Name (SSID)</string>
+    <string name="add">Hinzufügen</string>
+    <string name="delay_hint">Wartezeit nach dem Verlassen des Heim-WLANs, bevor Tailscale startet. Verhindert Hin- und Herschalten bei kurzen Funklöchern. Beim Heimkommen wird sofort getrennt.</string>
+    <string name="test_title">Tailscale manuell</string>
+    <string name="connect">Verbinden</string>
+    <string name="disconnect">Trennen</string>
+    <string name="notif_channel">WLAN-Überwachung</string>
+    <string name="notif_starting">Starte Überwachung…</string>
+    <string name="status_stopped">Automatik ist aus.</string>
+</resources>
