@@ -1,159 +1,179 @@
 <p align="center">
-  <img src="docs/icon.png" width="128" alt="VSA-Icon">
+  <img src="docs/icon.png" width="128" alt="VSA icon">
 </p>
 
 <h1 align="center">VSA – VPN Switching Application</h1>
 
 <p align="center">
-  Android-App, die dein VPN <b>automatisch einschaltet, sobald du dein Heim-WLAN verlässt</b>,<br>
-  und <b>wieder ausschaltet, wenn du nach Hause kommst</b>.
+  Android app that <b>automatically turns your VPN on when you leave your home Wi-Fi</b><br>
+  and <b>turns it off again when you get back home</b>.
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><b>⬇ Neueste Version herunterladen</b></a>
+  <a href="../../releases/latest"><b>⬇ Download the latest release</b></a>
 </p>
 
 ---
 
-## Inhalt
+## Contents
 
-- [Funktionen](#funktionen)
-- [Unterstützte VPN-Apps](#unterstützte-vpn-apps)
+- [Features](#features)
+- [Supported VPN apps](#supported-vpn-apps)
 - [Installation](#installation)
-- [Einrichtung](#einrichtung)
-- [So funktioniert die Automatik](#so-funktioniert-die-automatik)
-- [Berechtigungen & Datenschutz](#berechtigungen--datenschutz)
-- [Fehlerbehebung](#fehlerbehebung)
-- [Entwicklung](#entwicklung)
+- [Setup](#setup)
+- [How the automation works](#how-the-automation-works)
+- [Permissions & privacy](#permissions--privacy)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [License](#license)
 
-## Funktionen
+> The app's user interface is currently in **German**. UI labels below are quoted in German with an English translation.
 
-- 🏠 **Heim-WLAN festlegen**: per Knopfdruck das aktuelle WLAN übernehmen oder den Namen eintippen. Mehrere Heim-WLANs sind möglich, z. B. 2,4 GHz und 5 GHz oder Repeater mit eigenem Namen.
-- 🔒 **Automatisch schalten**: zuhause VPN aus, unterwegs VPN an.
-- ⏱️ **Verzögerung gegen Funklöcher**: nach dem Verlassen wird erst nach einer einstellbaren Zeit verbunden (0–120 s, Standard 20 s). Beim Heimkommen wird sofort getrennt.
-- 🔌 **Mehrere VPN-Dienste**: Tailscale, WireGuard oder jede App, die sich per Broadcast steuern lässt.
-- 🔁 **Läuft im Hintergrund** und startet nach einem Neustart des Handys von selbst.
-- ✋ **Respektiert Handbedienung**: geschaltet wird nur beim Kommen und Gehen. Schaltest du das VPN zwischendurch selbst um, bleibt es so.
-- 🧭 **Einrichtungsassistent**: zeigt an, was noch fehlt, und führt mit „Jetzt beheben“ zur richtigen Einstellung.
+## Features
 
-## Unterstützte VPN-Apps
+- 🏠 **Define your home Wi-Fi**: add the network you are connected to with one tap, or type its name (SSID). Multiple home networks are supported, e.g. separate 2.4 GHz / 5 GHz names or repeaters.
+- 🔒 **Automatic switching**: VPN off at home, VPN on everywhere else.
+- ⏱️ **Delay against dropouts**: after leaving home, VSA waits for an adjustable time (0–120 s, default 20 s) before connecting. Coming home disconnects immediately.
+- 🔌 **Multiple VPN services**: Tailscale, WireGuard, or any app that can be controlled via broadcast intents.
+- 🔁 **Runs in the background** and restarts automatically after a reboot.
+- ✋ **Respects manual control**: VSA only switches when you arrive or leave. If you toggle the VPN yourself in between, VSA leaves it alone.
+- 🧭 **Setup assistant**: shows what is still missing and takes you to the right setting with „Jetzt beheben“ (*Fix now*).
 
-| VPN-App | Wie VSA sie steuert | Was du tun musst |
+## Supported VPN apps
+
+| VPN app | How VSA controls it | What you need to do |
 |---|---|---|
-| **[Tailscale](https://play.google.com/store/apps/details?id=com.tailscale.ipn)** | Broadcast `com.tailscale.ipn.CONNECT_VPN` / `DISCONNECT_VPN` | Einmal einloggen und einmal verbinden |
-| **[WireGuard](https://play.google.com/store/apps/details?id=com.wireguard.android)** (offizielle App) | Broadcast `SET_TUNNEL_UP` / `SET_TUNNEL_DOWN` mit Tunnelname | In WireGuard *Einstellungen → „Fernsteuerung durch Apps erlauben“* einschalten, in VSA den Tunnelnamen eintragen und die Berechtigung erlauben |
-| **Andere App** | Frei konfigurierbarer Broadcast (Paket, Aktionen, Extras) | Die Broadcast-Schnittstelle der App eintragen (steht in deren Doku) |
+| **[Tailscale](https://play.google.com/store/apps/details?id=com.tailscale.ipn)** | Broadcast `com.tailscale.ipn.CONNECT_VPN` / `DISCONNECT_VPN` | Log in once and connect once |
+| **[WireGuard](https://play.google.com/store/apps/details?id=com.wireguard.android)** (official app) | Broadcast `SET_TUNNEL_UP` / `SET_TUNNEL_DOWN` with the tunnel name | In WireGuard, enable *Settings → "Allow remote control apps"*. In VSA, enter the tunnel name and grant the permission |
+| **Other app** | Fully configurable broadcast (package, actions, extras) | Enter the app's broadcast interface (see that app's documentation) |
 
-> **Warum nicht ProtonVPN, NordVPN, Mullvad & Co.?**
-> Android erlaubt Apps nicht, das VPN einer *anderen* App direkt ein- oder auszuschalten. Das geht nur, wenn die VPN-App selbst eine Schnittstelle dafür anbietet, wie Tailscale und WireGuard. Bietet eine App so eine Schnittstelle an, kannst du sie über **„Andere App“** anbinden.
+> **Why not ProtonVPN, NordVPN, Mullvad & co.?**
+> Android does not allow an app to switch *another* app's VPN directly. This only works if the VPN app itself offers an interface for it, as Tailscale and WireGuard do. If an app offers such an interface, you can connect it via **"Other app"**.
 
 <details>
-<summary><b>Beispiel „Andere App“</b>: Tailscale von Hand konfiguriert</summary>
+<summary><b>Example "Other app"</b>: Tailscale configured manually</summary>
 
-So sähe Tailscale aus, wenn es nicht schon eingebaut wäre:
+This is what Tailscale would look like if it weren't built in:
 
-| Feld | Wert |
+| Field | Value |
 |---|---|
-| Paketname | `com.tailscale.ipn` |
-| Empfänger-Klasse | `com.tailscale.ipn.IPNReceiver` |
-| Aktion zum Verbinden | `com.tailscale.ipn.CONNECT_VPN` |
-| Aktion zum Trennen | `com.tailscale.ipn.DISCONNECT_VPN` |
-| Extras | *(leer)* |
+| Package name | `com.tailscale.ipn` |
+| Receiver class | `com.tailscale.ipn.IPNReceiver` |
+| Connect action | `com.tailscale.ipn.CONNECT_VPN` |
+| Disconnect action | `com.tailscale.ipn.DISCONNECT_VPN` |
+| Extras | *(empty)* |
 
-Extras schreibst du als `schlüssel=wert`, eine Zeile pro Extra. Sie werden als Text übergeben. Zeilen, die mit `#` beginnen, werden ignoriert.
+Extras are written as `key=value`, one per line, and passed as strings. Lines starting with `#` are ignored.
 </details>
 
 ## Installation
 
-1. Unter [**Releases**](../../releases/latest) die Datei `VSA-x.y.z.apk` aufs Handy laden.
-2. Öffnen und die Installation aus dieser Quelle erlauben, wenn Android danach fragt.
-3. Updates installierst du genauso, einfach über die alte Version drüber. Deine Einstellungen bleiben erhalten.
+1. Download `VSA-x.y.z.apk` from [**Releases**](../../releases/latest) to your phone.
+2. Open it and allow installing from this source when Android asks.
+3. To update, install the new version over the old one. Your settings are kept.
 
-Voraussetzung: **Android 8.0 oder neuer**.
+Requires **Android 8.0 or newer**.
 
-## Einrichtung
+## Setup
 
-1. **VPN-App vorbereiten**
-   - *Tailscale:* öffnen, einloggen, einmal verbinden und die VPN-Anfrage von Android bestätigen.
-   - *WireGuard:* Tunnel anlegen, einmal verbinden, dann unter *Einstellungen* „Fernsteuerung durch Apps erlauben“ einschalten.
-2. **VSA öffnen** und unter **VPN-Dienst** deine App auswählen. Bei WireGuard oder „Andere App“ die Felder ausfüllen und **Speichern**.
-3. Im Heim-WLAN auf **„Aktuelles WLAN hinzufügen“** tippen.
-4. **„Automatik aktiv“** einschalten und die Punkte im Kasten **Einrichtung** abarbeiten:
-   - Standortzugriff auf **„Immer erlauben“** stellen (siehe [Datenschutz](#berechtigungen--datenschutz)).
-   - Standort (GPS) eingeschaltet lassen.
-   - Benachrichtigungen erlauben.
-   - Empfohlen: Akku-Optimierung für VSA abschalten.
-5. Mit **„VPN manuell schalten“** kannst du prüfen, ob VSA deine VPN-App erreicht.
+1. **Prepare your VPN app**
+   - *Tailscale:* open it, log in, connect once and confirm Android's VPN request.
+   - *WireGuard:* create a tunnel, connect once, then enable "Allow remote control apps" in its settings.
+2. **Open VSA**, choose your app under „VPN-Dienst“ (*VPN service*). For WireGuard or "Other app", fill in the fields and tap „Speichern“ (*Save*).
+3. While connected to your home Wi-Fi, tap „Aktuelles WLAN hinzufügen“ (*Add current Wi-Fi*).
+4. Turn on „Automatik aktiv“ (*Automation enabled*) and work through the items in the „Einrichtung“ (*Setup*) box:
+   - Set location access to **"Allow all the time"** (see [Privacy](#permissions--privacy)).
+   - Keep location (GPS) turned on.
+   - Allow notifications.
+   - Recommended: disable battery optimization for VSA.
+5. Use „VPN manuell schalten“ (*Switch VPN manually*) to check that VSA can reach your VPN app.
 
-Fertig. In der Benachrichtigung siehst du jederzeit, was VSA gerade tut, z. B. *„Zuhause („FRITZ!Box 7590“) – Tailscale aus“*.
+Done. The notification always shows what VSA is doing, e.g. *„Zuhause („FRITZ!Box 7590“) – Tailscale aus“* (*At home – Tailscale off*).
 
-## So funktioniert die Automatik
+## How the automation works
 
 ```
-          Heim-WLAN verbunden                    kein / fremdes WLAN
-  ┌────────────────────────────────┐   ┌──────────────────────────────────────┐
-  │  VPN sofort trennen            │   │  Verzögerung abwarten (Standard 20 s) │
-  │  (laufenden Countdown abbrechen)│   │  → VPN verbinden                      │
-  └────────────────────────────────┘   └──────────────────────────────────────┘
+        Home Wi-Fi connected                    No Wi-Fi / other Wi-Fi
+  ┌─────────────────────────────────┐   ┌──────────────────────────────────┐
+  │  Disconnect VPN immediately     │   │  Wait for the delay (default 20 s)│
+  │  (cancel any running countdown) │   │  → connect VPN                    │
+  └─────────────────────────────────┘   └──────────────────────────────────┘
 ```
 
-- Ein Vordergrunddienst beobachtet mit der Android-Netzwerk-API alle WLAN-Verbindungen. Er fragt nicht ständig ab und braucht daher kaum Akku.
-- **Kommst du zurück**, bevor die Verzögerung abgelaufen ist (z. B. nach einem kurzen Funkloch), passiert nichts.
-- VSA schickt einen Befehl **nur beim Wechsel** zwischen „zuhause“ und „unterwegs“. Beim Start des Dienstes und nach einer Änderung der VPN-Einstellungen wird der aktuelle Zustand einmal neu gesendet.
-- Ist ein WLAN verbunden, sein Name aber nicht lesbar (Standort aus oder Berechtigung fehlt), **schaltet VSA lieber gar nicht** und zeigt einen Hinweis.
-- Schlägt ein Befehl fehl (z. B. VPN-App deinstalliert), steht der Grund in der Benachrichtigung. Beim nächsten Netzwechsel versucht VSA es erneut.
+- A foreground service watches all Wi-Fi connections using Android's network callback API. It doesn't poll, so battery usage is minimal.
+- If you **come back before the delay expires** (e.g. a short dropout), nothing happens.
+- VSA only sends a command **on a transition** between "home" and "away". The current state is sent once when the service starts and after the VPN settings change.
+- If Wi-Fi is connected but its name can't be read (location off or permission missing), VSA **does not switch at all** and shows a warning instead.
+- If a command fails (e.g. the VPN app was uninstalled), the reason is shown in the notification. VSA tries again on the next network change.
 
-## Berechtigungen & Datenschutz
+## Permissions & privacy
 
-VSA hat **keinen Internetzugriff**, sammelt nichts und sendet nichts. Alle Einstellungen bleiben auf dem Gerät.
+VSA has **no internet permission**. It collects and sends nothing, and all settings stay on the device.
 
-| Berechtigung | Wofür |
+| Permission | Why |
 |---|---|
-| Standort (genau + „Immer erlauben“) | Android gibt den **Namen des WLANs** nur mit Standortberechtigung heraus, im Hintergrund nur mit „Immer erlauben“. VSA fragt **keinen Standort ab** und speichert keinen. |
-| WLAN- / Netzwerkstatus | Erkennen, mit welchem WLAN das Handy verbunden ist |
-| Vordergrunddienst + Benachrichtigungen | Im Hintergrund laufen und den Status anzeigen |
-| Beim Start ausführen | Überwachung nach einem Neustart fortsetzen |
-| Akku-Optimierung ignorieren (optional) | Verhindert, dass aggressive Energiesparmodi VSA beenden |
-| WireGuard-Tunnel steuern | Nur für WireGuard: Tunnel ein-/ausschalten |
-| Alle Apps sehen | Nur für „Andere App“: Android 11+ verlangt das, damit VSA beliebige VPN-Apps finden und ansprechen kann |
+| Location (precise + "Allow all the time") | Android only reveals the **Wi-Fi name** to apps with location permission, and in the background only with "Allow all the time". VSA **does not request or store your location**. |
+| Wi-Fi / network state | Detect which Wi-Fi the phone is connected to |
+| Foreground service + notifications | Run in the background and show the status |
+| Run at startup | Resume monitoring after a reboot |
+| Ignore battery optimizations (optional) | Prevents aggressive power-saving modes from killing VSA |
+| Control WireGuard tunnels | WireGuard only: turn tunnels on and off |
+| Query all packages | "Other app" only: Android 11+ requires this so VSA can find and address arbitrary VPN apps |
 
-## Fehlerbehebung
+## Troubleshooting
 
-**„WLAN-Name nicht lesbar“**
-Standort einschalten und für VSA *Einstellungen → Apps → VSA → Berechtigungen → Standort →* **„Immer erlauben“** und **„Genauen Standort verwenden“** wählen.
+**„WLAN-Name nicht lesbar“ (*Wi-Fi name not readable*)**
+Turn on location and set *Settings → Apps → VSA → Permissions → Location* to **"Allow all the time"** with **"Use precise location"** enabled.
 
-**VPN schaltet nicht, obwohl der Status stimmt**
-- Mit **„VPN manuell schalten“** testen.
-- *Tailscale:* in der Tailscale-App eingeloggt? Hat Android die VPN-Erlaubnis für Tailscale gespeichert?
-- *WireGuard:* stimmt der Tunnelname exakt, mit Groß- und Kleinschreibung? Ist „Fernsteuerung durch Apps erlauben“ an?
-- Ist in den Android-Einstellungen bei einer **anderen** App „Durchgehend aktives VPN“ aktiv? Das blockiert andere VPNs.
+**The VPN doesn't switch although the status is correct**
+- Test with „VPN manuell schalten“ (*Switch VPN manually*).
+- *Tailscale:* are you logged in? Has Android stored the VPN permission for Tailscale?
+- *WireGuard:* does the tunnel name match exactly, including upper/lower case? Is "Allow remote control apps" enabled?
+- Is **Always-on VPN** enabled for a *different* app in Android's settings? That blocks other VPNs.
 
-**VSA hört nach einer Weile auf zu arbeiten**
-Akku-Optimierung für VSA abschalten. Auf Samsung zusätzlich *Akku → Hintergrundnutzungslimits*: VSA nicht in „Inaktive Apps“. Auf Xiaomi *Autostart* erlauben. Mehr dazu bei [dontkillmyapp.com](https://dontkillmyapp.com).
+**VSA stops working after a while**
+Disable battery optimization for VSA. On Samsung, also check *Battery → Background usage limits* and make sure VSA isn't listed as sleeping. On Xiaomi, allow *Autostart*. See [dontkillmyapp.com](https://dontkillmyapp.com) for details.
 
-**Heim-WLAN mit mehreren Namen**
-Einfach alle Namen als Heim-WLAN eintragen.
+**My home network has several names**
+Add all of them as home Wi-Fi.
 
-## Entwicklung
+## Development
 
 ```bash
-./gradlew assembleDebug          # Debug-APK  → app/build/outputs/apk/debug/
-./gradlew assembleRelease        # Release-APK → app/build/outputs/apk/release/
-./gradlew testDebugUnitTest      # Unit-Tests
+./gradlew assembleDebug          # debug APK   → app/build/outputs/apk/debug/
+./gradlew assembleRelease        # release APK → app/build/outputs/apk/release/
+./gradlew testDebugUnitTest      # unit tests
 ./gradlew lintDebug              # Android Lint
 ```
 
-Voraussetzungen: JDK 17+, Android SDK mit Platform 35.
+Requirements: JDK 17+, Android SDK with platform 35.
 
-| Datei | Inhalt |
+| File | Purpose |
 |---|---|
-| `WifiWatcher.kt` | Beobachtet WLAN-Verbindungen und liest die SSIDs |
-| `WifiMonitorService.kt` | Vordergrunddienst mit der Schaltlogik (zuhause/unterwegs, Verzögerung) |
-| `VpnProvider.kt` | Anbindung an Tailscale, WireGuard und eigene Broadcasts |
-| `MainActivity.kt` | Oberfläche und Einrichtungsassistent |
-| `Prefs.kt` | Einstellungen |
-| `BootReceiver.kt` | Start nach dem Hochfahren |
+| `WifiWatcher.kt` | Watches Wi-Fi connections and reads their SSIDs |
+| `WifiMonitorService.kt` | Foreground service with the switching logic (home/away, delay) |
+| `VpnProvider.kt` | Integration with Tailscale, WireGuard and custom broadcasts |
+| `MainActivity.kt` | User interface and setup assistant |
+| `Prefs.kt` | Settings |
+| `BootReceiver.kt` | Start after boot |
 
-GitHub Actions baut und testet jeden Push (Artefakt **VSA-debug-apk**). Ein Tag `v*` erzeugt automatisch ein Release, siehe [docs/RELEASE.md](docs/RELEASE.md).
+GitHub Actions builds and tests every push (artifact **VSA-debug-apk**). Releases are created by the release workflow, see [docs/RELEASE.md](docs/RELEASE.md).
 
-Änderungen stehen im [CHANGELOG](CHANGELOG.md).
+Changes are listed in the [CHANGELOG](CHANGELOG.md).
+
+## License
+
+VSA is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE.md).
+
+| | |
+|---|---|
+| ✅ Private use | free |
+| ✅ Modifying and further developing it for noncommercial purposes | free, as long as the license and copyright notice are kept |
+| ✅ Use by noncommercial organizations (schools, charities, public institutions) | free |
+| 💼 **Commercial use** (selling, monetizing, use in or by companies, paid services) | **only with a prior agreement**, e.g. a license fee or revenue share. See [COMMERCIAL.md](COMMERCIAL.md) |
+
+Copyright © 2026 marvinramm
+
+---
+
+*VSA is an independent project and is not affiliated with or endorsed by Tailscale Inc. or the WireGuard project. "Tailscale" and "WireGuard" are trademarks of their respective owners.*

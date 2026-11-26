@@ -2,8 +2,10 @@
 ---
 
 ### Installation
-1. `VSA-*.apk` unten herunterladen und auf dem Handy öffnen.
-2. Die Installation aus dieser Quelle erlauben, wenn Android danach fragt.
-3. Ist eine ältere Version installiert, wird sie einfach aktualisiert. Die Einstellungen bleiben erhalten.
+1. Download `VSA-*.apk` below and open it on your phone.
+2. Allow installing from this source when Android asks.
+3. If an older version is installed, it will be updated and your settings are kept.
 
-Mit der `.sha256`-Datei kannst du prüfen, ob die APK unverändert ist. Eine Anleitung zur Einrichtung steht in der [README](REPO_URL#einrichtung).
+Use the `.sha256` file to verify that the APK is unmodified. Setup instructions are in the [README](REPO_URL#setup).
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](REPO_URL/blob/main/LICENSE.md). Commercial use requires a prior agreement, see [COMMERCIAL.md](REPO_URL/blob/main/COMMERCIAL.md).

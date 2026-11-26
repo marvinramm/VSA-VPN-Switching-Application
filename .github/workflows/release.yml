@@ -1,8 +1,8 @@
 name: Release
 
-# Startet, sobald ein Tag wie v1.0.0 gepusht wird:
+# Runs when a tag like v1.0.0 is pushed:
 #   git tag v1.0.0 && git push origin v1.0.0
-# oder manuell unter Actions → Release → „Run workflow“ (Tag wird dann aus versionName erzeugt).
+# or manually via Actions → Release → "Run workflow" (the tag is then derived from versionName).
 on:
   push:
     tags: ["v*"]
@@ -22,7 +22,7 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Version bestimmen
+      - name: Determine version
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             TAG="$GITHUB_REF_NAME"
@@ -33,31 +33,31 @@ jobs:
           echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
           echo "Release $TAG"
 
-      # Optional: eigener Release-Schlüssel über Repository-Secrets (siehe docs/RELEASE.md).
-      - name: Signierschlüssel einrichten
+      # Optional: own release key via repository secrets (see docs/RELEASE.md).
+      - name: Set up signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.VSA_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
             echo "VSA_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
-            echo "Eigener Release-Schlüssel wird verwendet."
+            echo "Using own release key."
           else
-            echo "Kein Secret gesetzt – gemeinsamer Projektschlüssel aus signing/ wird verwendet."
+            echo "No secret set - using the shared project key from signing/."
           fi
 
-      - name: Release-APK bauen
+      - name: Build release APK
         env:
           VSA_KEYSTORE_PASSWORD: ${{ secrets.VSA_KEYSTORE_PASSWORD }}
           VSA_KEY_ALIAS: ${{ secrets.VSA_KEY_ALIAS }}
           VSA_KEY_PASSWORD: ${{ secrets.VSA_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: APK umbenennen und Prüfsumme erzeugen
+      - name: Rename APK and create checksum
         run: |
           cp app/build/outputs/apk/release/app-release.apk "VSA-${VERSION}.apk"
           sha256sum "VSA-${VERSION}.apk" > "VSA-${VERSION}.apk.sha256"
-          # Abschnitt dieser Version aus dem CHANGELOG als Release-Text
+          # Use this version's CHANGELOG section as release notes
           awk -v v="$VERSION" '
             $0 ~ "^## \\[" v "\\]" {found=1; next}
             found && /^## \[/ {exit}

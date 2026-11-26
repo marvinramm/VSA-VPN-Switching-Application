@@ -1,20 +1,31 @@
 # Changelog
 
-Alle nennenswerten Änderungen an VSA. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
+All notable changes to VSA are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+- License: [PolyForm Noncommercial 1.0.0](LICENSE.md). Commercial use requires a prior agreement, see [COMMERCIAL.md](COMMERCIAL.md).
+
+### Changed
+- Documentation is now in English.
 
 ## [1.0.0] - 2026-11-26
 
-Erste Veröffentlichung.
+First release.
 
-### Neu
-- Schaltet das VPN automatisch: Heim-WLAN verbunden → aus, unterwegs → an.
-- Mehrere Heim-WLANs, wahlweise das aktuelle WLAN übernehmen oder den Namen eintippen.
-- Einstellbare Verzögerung beim Verlassen (0–120 s) gegen Funklöcher. Beim Heimkommen wird sofort getrennt.
-- Unterstützte VPN-Apps:
+### Added
+- Automatic VPN switching: home Wi-Fi connected → off, away → on.
+- Multiple home networks; add the current Wi-Fi with one tap or type its name.
+- Adjustable delay when leaving (0–120 s) to ride out short dropouts. Coming home disconnects immediately.
+- Supported VPN apps:
   - **Tailscale**
-  - **WireGuard** (offizielle App, Steuerung über den Tunnelnamen)
-  - **Andere App** über einen frei konfigurierbaren Broadcast
-- Statusanzeige in einer dauerhaften Benachrichtigung, Fehler werden dort ebenfalls angezeigt.
-- Einrichtungsassistent für Berechtigungen, Standort, Akku-Optimierung und VPN-App.
-- Startet nach einem Neustart des Handys automatisch.
-- Neues App-Icon (Schild mit WLAN-Symbol), inklusive Themed Icon für Android 13+.
+  - **WireGuard** (official app, controlled by tunnel name)
+  - **Other app** via a fully configurable broadcast
+- Status shown in a persistent notification, including errors.
+- Setup assistant for permissions, location, battery optimization and the VPN app.
+- Starts automatically after a reboot.
+- New app icon (shield with Wi-Fi symbol), including a themed icon for Android 13+.
+
+[Unreleased]: ../../compare/v1.0.0...HEAD
+[1.0.0]: ../../releases/tag/v1.0.0

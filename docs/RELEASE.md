@@ -1,47 +1,48 @@
-# Release erstellen
+# Creating a release
 
-Releases baut GitHub Actions automatisch (`.github/workflows/release.yml`), sobald ein Tag `v*` gepusht wird.
+Releases are built by GitHub Actions (`.github/workflows/release.yml`).
 
-## Ablauf
+## Steps
 
-1. In `app/build.gradle.kts` die Version erhöhen:
-   - `versionCode` muss **größer** als beim letzten Release sein, sonst lehnt Android das Update ab.
-   - `versionName` ist die angezeigte Version, z. B. `1.1.0`.
-2. In `CHANGELOG.md` einen Abschnitt `## [1.1.0] - JJJJ-MM-TT` anlegen. Er wird automatisch zum Release-Text.
-3. Committen, Tag setzen, pushen:
-   ```bash
-   git commit -am "Version 1.1.0"
-   git tag v1.1.0
-   git push origin main v1.1.0
-   ```
-   Alternativ ohne Tag: auf GitHub unter *Actions → Release → „Run workflow“* starten. Das Tag wird dann aus `versionName` erzeugt.
-4. Nach 2–3 Minuten liegt unter **Releases** die Datei `VSA-1.1.0.apk` samt SHA-256-Prüfsumme.
+1. Bump the version in `app/build.gradle.kts`:
+   - `versionCode` must be **higher** than in the previous release, otherwise Android rejects the update.
+   - `versionName` is the displayed version, e.g. `1.1.0`.
+2. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [1.1.0] - YYYY-MM-DD` (or add that section). It becomes the release notes automatically.
+3. Commit and push to `main`.
+4. Start the release, either way works:
+   - **On GitHub:** *Actions → Release → "Run workflow"* on `main`. The tag `v<versionName>` is created automatically.
+   - **Via tag:**
+     ```bash
+     git tag v1.1.0
+     git push origin v1.1.0
+     ```
+5. After 2–3 minutes, `VSA-1.1.0.apk` and its SHA-256 checksum appear under **Releases**.
 
-## Signierung
+## Signing
 
-Android installiert ein Update nur, wenn es mit **demselben Schlüssel** signiert ist wie die installierte Version.
+Android only installs an update if it is signed with the **same key** as the installed version.
 
-**Standard:** Alle Builds (Debug, Release, lokal und in GitHub Actions) werden mit dem Projektschlüssel `signing/vsa-shared.keystore` signiert. Dadurch lassen sich alle Builds gegenseitig als Update installieren.
+**Default:** All builds (debug, release, local and on GitHub Actions) are signed with the project key `signing/vsa-shared.keystore`. This way every build can be installed as an update of every other build.
 
-> ⚠️ Dieser Schlüssel liegt im Repository und hat das Standardpasswort `android`. Jeder mit Zugriff auf das Repo kann damit eine APK signieren, die Android als Update von VSA akzeptiert. Für ein privates Repo und den Eigengebrauch ist das in Ordnung. Wird das Repo öffentlich, solltest du auf einen eigenen Schlüssel umsteigen.
+> ⚠️ This key is stored in the repository with the default password `android`. Anyone with access to the repository can sign an APK that Android accepts as an update of VSA. That's fine for a private repository and personal use. Before making the repository public, switch to your own key.
 
-### Eigenen Schlüssel verwenden (optional)
+### Using your own key (optional)
 
 ```bash
 keytool -genkeypair -v -keystore vsa-release.jks -alias vsa \
         -keyalg RSA -keysize 4096 -validity 10000
-base64 -w0 vsa-release.jks   # Ausgabe kopieren
+base64 -w0 vsa-release.jks   # copy the output
 ```
 
-Unter *GitHub → Settings → Secrets and variables → Actions* diese Repository-Secrets anlegen:
+Create these repository secrets under *GitHub → Settings → Secrets and variables → Actions*:
 
-| Secret | Inhalt |
+| Secret | Value |
 |---|---|
-| `VSA_KEYSTORE_BASE64` | Base64-Ausgabe von oben |
-| `VSA_KEYSTORE_PASSWORD` | Keystore-Passwort |
+| `VSA_KEYSTORE_BASE64` | Base64 output from above |
+| `VSA_KEYSTORE_PASSWORD` | Keystore password |
 | `VSA_KEY_ALIAS` | `vsa` |
-| `VSA_KEY_PASSWORD` | Schlüssel-Passwort |
+| `VSA_KEY_PASSWORD` | Key password |
 
-Ab dann signiert der Release-Workflow mit deinem Schlüssel. **Wichtig:** Der Wechsel des Schlüssels erfordert einmalig eine Deinstallation der alten App. Die `.jks`-Datei und die Passwörter gut aufbewahren, ohne sie sind keine Updates mehr möglich.
+From then on the release workflow signs with your key. **Important:** switching keys requires uninstalling the old app once. Keep the `.jks` file and passwords safe. Without them, no further updates are possible.
 
-Lokal signierst du mit demselben Schlüssel über die Umgebungsvariablen `VSA_KEYSTORE_FILE`, `VSA_KEYSTORE_PASSWORD`, `VSA_KEY_ALIAS` und `VSA_KEY_PASSWORD`.
+To sign locally with the same key, set the environment variables `VSA_KEYSTORE_FILE`, `VSA_KEYSTORE_PASSWORD`, `VSA_KEY_ALIAS` and `VSA_KEY_PASSWORD`.
