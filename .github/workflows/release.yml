@@ -62,7 +62,9 @@ jobs:
             $0 ~ "^## \\[" v "\\]" {found=1; next}
             found && /^## \[/ {exit}
             found {print}
-          ' CHANGELOG.md > release-notes.md
+          ' CHANGELOG.md \
+            | sed -E "s#\]\(([A-Za-z0-9_./-]+\.md)\)#](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${TAG}/\1)#g" \
+            > release-notes.md
           sed "s|REPO_URL|${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}|g" docs/release-footer.md >> release-notes.md
 
       - uses: softprops/action-gh-release@v2

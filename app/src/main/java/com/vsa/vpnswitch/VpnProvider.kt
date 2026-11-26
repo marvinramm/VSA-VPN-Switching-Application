@@ -7,10 +7,17 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 
 /** Die VPN-Apps, die VSA steuern kann. */
-enum class VpnProvider(val id: String, val label: String, val packageName: String?) {
-    TAILSCALE("tailscale", "Tailscale", "com.tailscale.ipn"),
-    WIREGUARD("wireguard", "WireGuard", "com.wireguard.android"),
-    CUSTOM("custom", "Andere App (eigener Broadcast)", null);
+enum class VpnProvider(val id: String, val packageName: String?) {
+    TAILSCALE("tailscale", "com.tailscale.ipn"),
+    WIREGUARD("wireguard", "com.wireguard.android"),
+    CUSTOM("custom", null);
+
+    /** Name für Status und Meldungen. */
+    fun displayName(context: Context): String = when (this) {
+        TAILSCALE -> "Tailscale"
+        WIREGUARD -> "WireGuard"
+        CUSTOM -> context.getString(R.string.vpn_generic)
+    }
 
     companion object {
         fun fromId(id: String?): VpnProvider = entries.firstOrNull { it.id == id } ?: TAILSCALE
@@ -56,22 +63,27 @@ object VpnController {
     /** Beschreibung des Problems, falls der aktuell gewählte Dienst noch nicht schaltbar ist – sonst null. */
     fun configProblem(context: Context, prefs: Prefs): String? = when (prefs.provider) {
         VpnProvider.TAILSCALE ->
-            if (!isInstalled(context, VpnProvider.TAILSCALE.packageName!!)) "Tailscale ist nicht installiert." else null
+            if (!isInstalled(context, VpnProvider.TAILSCALE.packageName!!)) {
+                context.getString(R.string.err_not_installed, "Tailscale")
+            } else {
+                null
+            }
 
         VpnProvider.WIREGUARD -> when {
-            !isInstalled(context, VpnProvider.WIREGUARD.packageName!!) -> "WireGuard ist nicht installiert."
-            prefs.wireguardTunnel.isBlank() -> "Kein WireGuard-Tunnelname eingetragen."
-            !hasWireGuardPermission(context) -> "VSA fehlt die Berechtigung, WireGuard-Tunnel zu steuern."
+            !isInstalled(context, VpnProvider.WIREGUARD.packageName!!) ->
+                context.getString(R.string.err_not_installed, "WireGuard")
+            prefs.wireguardTunnel.isBlank() -> context.getString(R.string.err_wg_no_tunnel)
+            !hasWireGuardPermission(context) -> context.getString(R.string.err_wg_no_permission)
             else -> null
         }
 
         VpnProvider.CUSTOM -> when {
             prefs.customConnectAction.isBlank() || prefs.customDisconnectAction.isBlank() ->
-                "Für den eigenen Broadcast fehlen die Aktionen zum Verbinden/Trennen."
+                context.getString(R.string.err_custom_no_actions)
             prefs.customPackage.isBlank() ->
-                "Für den eigenen Broadcast fehlt der Paketname der VPN-App."
+                context.getString(R.string.err_custom_no_package)
             !isInstalled(context, prefs.customPackage.trim()) ->
-                "Die App „${prefs.customPackage.trim()}“ ist nicht installiert."
+                context.getString(R.string.err_not_installed, prefs.customPackage.trim())
             else -> null
         }
     }

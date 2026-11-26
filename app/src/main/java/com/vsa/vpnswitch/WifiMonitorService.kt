@@ -103,22 +103,23 @@ class WifiMonitorService : Service() {
         val known = watcher.knownSsids
         val homeSsid = known.firstOrNull { it in home }
 
-        val vpn = prefs.provider.label
+        val vpn = prefs.provider.displayName(this)
         val text: String = when {
-            home.isEmpty() -> "Kein Heim-WLAN festgelegt – öffne die App."
+            home.isEmpty() -> getString(R.string.svc_no_home)
 
             homeSsid != null -> {
                 cancelPendingConnect()
                 applyVpn(false)
-                "Zuhause („$homeSsid“) – $vpn aus"
+                getString(R.string.svc_at_home, homeSsid, vpn)
             }
 
             watcher.hasWifi && known.isEmpty() ->
                 // WLAN verbunden, aber Android verrät den Namen nicht -> lieber nichts tun.
-                "WLAN-Name nicht lesbar – Standort einschalten und Standortzugriff „Immer erlauben“."
+                getString(R.string.svc_ssid_unreadable)
 
             else -> {
-                val where = known.firstOrNull()?.let { "Fremdes WLAN („$it“)" } ?: "Kein WLAN"
+                val where = known.firstOrNull()?.let { getString(R.string.svc_other_wifi, it) }
+                    ?: getString(R.string.svc_no_wifi)
                 if (firstDecision) {
                     applyVpn(true)
                 } else if (prefs.lastVpnOn != true && !pendingConnect) {
@@ -131,9 +132,9 @@ class WifiMonitorService : Service() {
                     }
                 }
                 if (pendingConnect) {
-                    "$where – $vpn startet in ${prefs.leaveDelaySec} s…"
+                    getString(R.string.svc_vpn_starting_in, where, vpn, prefs.leaveDelaySec)
                 } else {
-                    "$where – $vpn an"
+                    getString(R.string.svc_vpn_on, where, vpn)
                 }
             }
         }
@@ -155,7 +156,7 @@ class WifiMonitorService : Service() {
         val force = firstDecision
         firstDecision = false
         if (!force && prefs.lastVpnOn == on) return
-        Log.i(TAG, "${prefs.provider.label} -> ${if (on) "connect" else "disconnect"}")
+        Log.i(TAG, "${prefs.provider.id} -> ${if (on) "connect" else "disconnect"}")
         when (val result = VpnController.setConnected(this, prefs, on)) {
             is SendResult.Sent -> {
                 lastError = null

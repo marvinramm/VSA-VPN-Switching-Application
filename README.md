@@ -24,10 +24,11 @@
 - [How the automation works](#how-the-automation-works)
 - [Permissions & privacy](#permissions--privacy)
 - [Troubleshooting](#troubleshooting)
+- [Languages](#languages)
 - [Development](#development)
 - [License](#license)
 
-> The app's user interface is currently in **German**. UI labels below are quoted in German with an English translation.
+> 🌍 The app is available in **English, German, French, Spanish, Italian and Dutch** and follows your phone's system language. See [Languages](#languages).
 
 ## Features
 
@@ -37,7 +38,7 @@
 - 🔌 **Multiple VPN services**: Tailscale, WireGuard, or any app that can be controlled via broadcast intents.
 - 🔁 **Runs in the background** and restarts automatically after a reboot.
 - ✋ **Respects manual control**: VSA only switches when you arrive or leave. If you toggle the VPN yourself in between, VSA leaves it alone.
-- 🧭 **Setup assistant**: shows what is still missing and takes you to the right setting with „Jetzt beheben“ (*Fix now*).
+- 🧭 **Setup assistant**: shows what is still missing and takes you to the right setting with **Fix now**.
 
 ## Supported VPN apps
 
@@ -79,16 +80,16 @@ Requires **Android 8.0 or newer**.
 1. **Prepare your VPN app**
    - *Tailscale:* open it, log in, connect once and confirm Android's VPN request.
    - *WireGuard:* create a tunnel, connect once, then enable "Allow remote control apps" in its settings.
-2. **Open VSA**, choose your app under „VPN-Dienst“ (*VPN service*). For WireGuard or "Other app", fill in the fields and tap „Speichern“ (*Save*).
-3. While connected to your home Wi-Fi, tap „Aktuelles WLAN hinzufügen“ (*Add current Wi-Fi*).
-4. Turn on „Automatik aktiv“ (*Automation enabled*) and work through the items in the „Einrichtung“ (*Setup*) box:
+2. **Open VSA** and choose your app under **VPN service**. For WireGuard or "Other app", fill in the fields and tap **Save**.
+3. While connected to your home Wi-Fi, tap **Add current Wi-Fi**.
+4. Turn on **Automation enabled** and work through the items in the **Setup** box:
    - Set location access to **"Allow all the time"** (see [Privacy](#permissions--privacy)).
    - Keep location (GPS) turned on.
    - Allow notifications.
    - Recommended: disable battery optimization for VSA.
-5. Use „VPN manuell schalten“ (*Switch VPN manually*) to check that VSA can reach your VPN app.
+5. Use **Switch VPN manually** to check that VSA can reach your VPN app.
 
-Done. The notification always shows what VSA is doing, e.g. *„Zuhause („FRITZ!Box 7590“) – Tailscale aus“* (*At home – Tailscale off*).
+Done. The notification always shows what VSA is doing, e.g. *At home ("FRITZ!Box 7590") – Tailscale off*.
 
 ## How the automation works
 
@@ -122,11 +123,11 @@ VSA has **no internet permission**. It collects and sends nothing, and all setti
 
 ## Troubleshooting
 
-**„WLAN-Name nicht lesbar“ (*Wi-Fi name not readable*)**
+**"Wi-Fi name not readable"**
 Turn on location and set *Settings → Apps → VSA → Permissions → Location* to **"Allow all the time"** with **"Use precise location"** enabled.
 
 **The VPN doesn't switch although the status is correct**
-- Test with „VPN manuell schalten“ (*Switch VPN manually*).
+- Test with **Switch VPN manually**.
 - *Tailscale:* are you logged in? Has Android stored the VPN permission for Tailscale?
 - *WireGuard:* does the tunnel name match exactly, including upper/lower case? Is "Allow remote control apps" enabled?
 - Is **Always-on VPN** enabled for a *different* app in Android's settings? That blocks other VPNs.
@@ -136,6 +137,21 @@ Disable battery optimization for VSA. On Samsung, also check *Battery → Backgr
 
 **My home network has several names**
 Add all of them as home Wi-Fi.
+
+## Languages
+
+| Language | |
+|---|---|
+| 🇬🇧 English | default (also used for all other system languages) |
+| 🇩🇪 German | |
+| 🇫🇷 French | |
+| 🇪🇸 Spanish | |
+| 🇮🇹 Italian | |
+| 🇳🇱 Dutch | |
+
+VSA automatically uses your phone's system language. On **Android 13+** you can also pick a different language just for VSA: *Settings → Apps → VSA → Language*.
+
+**Adding a language:** copy `app/src/main/res/values/strings.xml` to `values-<code>/strings.xml` (e.g. `values-pl`), translate the texts (keep placeholders like `%1$s` and `%3$d`), and add the code to `resourceConfigurations` in `app/build.gradle.kts`. Corrections to existing translations are very welcome.
 
 ## Development
 
@@ -154,6 +170,7 @@ Requirements: JDK 17+, Android SDK with platform 35.
 | `WifiMonitorService.kt` | Foreground service with the switching logic (home/away, delay) |
 | `VpnProvider.kt` | Integration with Tailscale, WireGuard and custom broadcasts |
 | `MainActivity.kt` | User interface and setup assistant |
+| `res/values*/strings.xml` | UI texts per language |
 | `Prefs.kt` | Settings |
 | `BootReceiver.kt` | Start after boot |
 

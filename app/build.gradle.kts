@@ -11,8 +11,11 @@ android {
         applicationId = "com.vsa.vpnswitch"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.0"
+        versionCode = 3
+        versionName = "1.1.0"
+
+        // Nur die Sprachen, in die VSA übersetzt ist (filtert auch Bibliotheks-Übersetzungen).
+        resourceConfigurations += listOf("en", "de", "fr", "es", "it", "nl")
     }
 
     signingConfigs {
@@ -54,6 +57,10 @@ android {
     }
     buildFeatures {
         viewBinding = true
+    }
+    androidResources {
+        // Erzeugt die Sprachliste für die App-Sprachauswahl in den Android-13+-Einstellungen.
+        generateLocaleConfig = true
     }
 }
 

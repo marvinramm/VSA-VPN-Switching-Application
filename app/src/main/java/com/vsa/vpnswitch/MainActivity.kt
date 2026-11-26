@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     private val wireguardPermLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (!granted) toast("Ohne diese Berechtigung kann VSA WireGuard nicht steuern.")
+            if (!granted) toast(getString(R.string.toast_wg_permission_denied))
             refresh()
         }
 
@@ -99,7 +99,7 @@ class MainActivity : AppCompatActivity() {
                     b.textStatus.text = when {
                         !prefs.enabled -> getString(R.string.status_stopped)
                         status.running && status.text.isNotBlank() -> status.text
-                        else -> "Überwachung startet…"
+                        else -> getString(R.string.status_starting)
                     }
                 }
             }
@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onToggleAutomation(checked: Boolean) {
         if (checked && prefs.homeSsids.isEmpty()) {
-            toast("Bitte zuerst ein Heim-WLAN hinzufügen.")
+            toast(getString(R.string.toast_add_home_first))
             b.switchEnabled.isChecked = false
             return
         }
@@ -149,18 +149,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun addCurrentWifi() {
         if (!hasFineLocation()) {
-            toast("Zum Auslesen des WLAN-Namens braucht Android die Standortberechtigung.")
+            toast(getString(R.string.toast_need_location))
             requestForegroundPermissions()
             return
         }
         if (!isLocationEnabled()) {
-            toast("Bitte den Standort (GPS) einschalten – sonst verrät Android den WLAN-Namen nicht.")
+            toast(getString(R.string.toast_enable_location))
             startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             return
         }
         val ssid = watcher.knownSsids.firstOrNull()
         if (ssid == null) {
-            toast(if (watcher.hasWifi) "WLAN-Name noch nicht lesbar – kurz warten und nochmal versuchen." else "Du bist gerade mit keinem WLAN verbunden.")
+            toast(getString(if (watcher.hasWifi) R.string.toast_ssid_not_ready else R.string.toast_no_wifi))
             return
         }
         addSsid(ssid)
@@ -175,11 +175,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun addSsid(ssid: String) {
         if (ssid in prefs.homeSsids) {
-            toast("„$ssid“ ist schon eingetragen.")
+            toast(getString(R.string.toast_ssid_exists, ssid))
             return
         }
         prefs.homeSsids = prefs.homeSsids + ssid
-        toast("„$ssid“ als Heim-WLAN gespeichert.")
+        toast(getString(R.string.toast_ssid_saved, ssid))
         refresh()
     }
 
@@ -219,15 +219,15 @@ class MainActivity : AppCompatActivity() {
     private fun refreshCurrentWifi() {
         val ssid = watcher.knownSsids.firstOrNull()
         b.textCurrentWifi.text = when {
-            ssid != null && ssid in prefs.homeSsids -> "Aktuelles WLAN: „$ssid“ (Heim-WLAN)"
-            ssid != null -> "Aktuelles WLAN: „$ssid“"
-            watcher.hasWifi -> "Aktuelles WLAN: Name nicht lesbar"
-            else -> "Aktuell kein WLAN verbunden"
+            ssid != null && ssid in prefs.homeSsids -> getString(R.string.current_wifi_home, ssid)
+            ssid != null -> getString(R.string.current_wifi, ssid)
+            watcher.hasWifi -> getString(R.string.current_wifi_unreadable)
+            else -> getString(R.string.current_wifi_none)
         }
     }
 
     private fun updateDelayLabel() {
-        b.textDelay.text = "Verzögerung beim Verlassen: ${b.sliderDelay.value.toInt()} s"
+        b.textDelay.text = getString(R.string.delay_label, b.sliderDelay.value.toInt())
     }
 
     private data class SetupStep(val description: String, val fix: () -> Unit)
@@ -236,28 +236,28 @@ class MainActivity : AppCompatActivity() {
         val steps = mutableListOf<SetupStep>()
         vpnSetupStep()?.let { steps += it }
         if (!hasFineLocation()) {
-            steps += SetupStep("• Standortberechtigung fehlt (nötig, um den WLAN-Namen zu lesen).") {
+            steps += SetupStep(getString(R.string.setup_location_missing)) {
                 requestForegroundPermissions()
             }
         } else if (needsBackgroundLocation()) {
-            steps += SetupStep("• Standortzugriff muss auf „Immer erlauben“ stehen, damit es im Hintergrund klappt.") {
+            steps += SetupStep(getString(R.string.setup_background_location)) {
                 askBackgroundLocation()
             }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             !granted(Manifest.permission.POST_NOTIFICATIONS)
         ) {
-            steps += SetupStep("• Benachrichtigungen erlauben (für die Statusanzeige).") {
+            steps += SetupStep(getString(R.string.setup_notifications)) {
                 requestForegroundPermissions()
             }
         }
         if (!isLocationEnabled()) {
-            steps += SetupStep("• Standort (GPS) ist ausgeschaltet – ohne ihn verrät Android keine WLAN-Namen.") {
+            steps += SetupStep(getString(R.string.setup_location_off)) {
                 startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
             }
         }
         if (!isIgnoringBatteryOptimizations()) {
-            steps += SetupStep("• Empfohlen: Akku-Optimierung für VSA abschalten, damit Android die App nicht beendet.") {
+            steps += SetupStep(getString(R.string.setup_battery)) {
                 requestIgnoreBatteryOptimizations()
             }
         }
@@ -271,7 +271,7 @@ class MainActivity : AppCompatActivity() {
             nextFix = null
         } else {
             b.cardSetup.visibility = View.VISIBLE
-            b.textSetup.text = steps.joinToString("\n") { it.description }
+            b.textSetup.text = steps.joinToString("\n") { "• ${it.description}" }
             nextFix = steps.first().fix
         }
     }
@@ -307,17 +307,12 @@ class MainActivity : AppCompatActivity() {
     private fun askBackgroundLocation() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
         MaterialAlertDialogBuilder(this)
-            .setTitle("Standort „Immer erlauben“")
-            .setMessage(
-                "Damit VSA auch bei geschlossener App merkt, wann du dein Heim-WLAN verlässt, " +
-                    "braucht Android den Standortzugriff „Immer erlauben“.\n\n" +
-                    "VSA nutzt das nur, um den Namen des verbundenen WLANs zu lesen – " +
-                    "es wird kein Standort gespeichert oder verschickt.",
-            )
-            .setPositiveButton("Weiter") { _, _ ->
+            .setTitle(R.string.bg_dialog_title)
+            .setMessage(R.string.bg_dialog_message)
+            .setPositiveButton(R.string.dialog_continue) { _, _ ->
                 backgroundPermLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
-            .setNegativeButton("Abbrechen", null)
+            .setNegativeButton(R.string.dialog_cancel, null)
             .show()
     }
 
@@ -365,7 +360,7 @@ class MainActivity : AppCompatActivity() {
             prefs.customConnectAction = b.editCustomConnect.text?.toString()?.trim().orEmpty()
             prefs.customDisconnectAction = b.editCustomDisconnect.text?.toString()?.trim().orEmpty()
             prefs.customExtras = b.editCustomExtras.text?.toString().orEmpty()
-            toast("Gespeichert.")
+            toast(getString(R.string.toast_saved))
             refresh()
         }
     }
@@ -383,14 +378,14 @@ class MainActivity : AppCompatActivity() {
         val pkg = provider.packageName
         return when {
             pkg != null && !VpnController.isInstalled(this, pkg) ->
-                SetupStep("• $problem") { openStore(pkg) }
+                SetupStep(problem) { openStore(pkg) }
 
             provider == VpnProvider.WIREGUARD && prefs.wireguardTunnel.isNotBlank() &&
                 !VpnController.hasWireGuardPermission(this) ->
-                SetupStep("• $problem") { wireguardPermLauncher.launch(VpnController.WIREGUARD_PERMISSION) }
+                SetupStep(problem) { wireguardPermLauncher.launch(VpnController.WIREGUARD_PERMISSION) }
 
-            else -> SetupStep("• $problem") {
-                toast("Bitte die Angaben im Bereich „VPN-Dienst“ ergänzen und speichern.")
+            else -> SetupStep(problem) {
+                toast(getString(R.string.toast_fill_vpn_settings))
             }
         }
     }
@@ -398,8 +393,8 @@ class MainActivity : AppCompatActivity() {
     private fun sendManual(on: Boolean) {
         when (val result = VpnController.setConnected(this, prefs, on)) {
             is SendResult.Sent -> {
-                val name = prefs.provider.label
-                toast(if (on) "Verbinden-Befehl an $name gesendet." else "Trennen-Befehl an $name gesendet.")
+                val name = prefs.provider.displayName(this)
+                toast(getString(if (on) R.string.toast_connect_sent else R.string.toast_disconnect_sent, name))
             }
             is SendResult.Failed -> {
                 toast(result.reason)
