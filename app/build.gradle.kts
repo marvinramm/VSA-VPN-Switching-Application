@@ -11,8 +11,8 @@ android {
         applicationId = "com.vsa.vpnswitch"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.1.1"
 
         // Nur die Sprachen, in die VSA übersetzt ist (filtert auch Bibliotheks-Übersetzungen).
         resourceConfigurations += listOf("en", "de", "fr", "es", "it", "nl")
